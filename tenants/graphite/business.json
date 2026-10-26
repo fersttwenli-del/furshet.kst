@@ -1,0 +1,28 @@
+{
+  "slug": "graphite",
+  "name": "Chef & Catering Hub",
+  "short_name": "ChefHub",
+  "accent": "#FF7A00",
+  "accent_purple": "#9B51E0",
+  "categories": [
+    { "id": "salads", "name": "🥗 Салаты", "active": true, "image": "images/work1.svg" },
+    { "id": "appetizers", "name": "🍢 Закуски", "active": true, "image": "images/work2.svg" },
+    { "id": "hot", "name": "🥩 Горячие блюда", "active": true, "image": "images/work3.svg" }
+  ],
+  "services": [
+    {
+      "name": "Салат Цезарь с креветками",
+      "price": 3200,
+      "duration_minutes": 20,
+      "category": "salads"
+    },
+    { "name": "Салат Греческий", "price": 2500, "duration_minutes": 15, "category": "salads" },
+    { "name": "Ассорти брускетт", "price": 4500, "duration_minutes": 30, "category": "appetizers" },
+    {
+      "name": "Стейк из мраморной говядины",
+      "price": 8500,
+      "duration_minutes": 45,
+      "category": "hot"
+    }
+  ]
+}
