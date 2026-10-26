@@ -1,0 +1,43 @@
+{
+  "slug": "graphite",
+  "name": "Chef & Catering Hub",
+  "short_name": "ChefHub",
+  "accent": "#FF8A24",
+  "accent_purple": "#B879EE",
+  "timezone": "Asia/Aqtobe",
+  "currency": "₸",
+  "buffer_minutes": 15,
+  "slot_minutes": 30,
+  "cancel_hours": 12,
+  "demo": true,
+  "phone": "+7 7470356684",
+  "address": "Костанай",
+  "description": "Выездной повар и доставка изысканной еды на дом и мероприятия",
+  "images": { "logo": "images/logo.svg", "hero": "images/hero.svg" },
+  "gallery": [
+    { "image": "images/work1.svg", "caption": "Банкетные закуски" },
+    { "image": "images/work2.svg", "caption": "Горячие блюда от шефа" },
+    { "image": "images/work3.svg", "caption": "Десерты и подача" }
+  ],
+  "cards": {
+    "booking": { "title": "Заказ еды и выезд повара", "text": "Соберите меню, укажите дату, формат и количество гостей" },
+    "ai": { "title": "Помощник по меню", "text": "Поможет подобрать блюда под ваше событие" },
+    "install": { "title": "Ресторан у вас дома", "text": "Оформляйте доставку или приглашайте шефа в несколько кликов." }
+  },
+  "resources": ["Шеф-повар", "Су-шеф", "Служба доставки"],
+  "hours": {
+    "mon": ["10:00", "22:00"], "tue": ["10:00", "22:00"], "wed": ["10:00", "22:00"],
+    "thu": ["10:00", "22:00"], "fri": ["10:00", "23:00"], "sat": ["10:00", "23:00"], "sun": ["10:00", "22:00"]
+  },
+  "categories": [
+    { "id": "salads", "name": "🥗 Салаты", "description": "Свежие салаты для повседневного стола и мероприятий.", "active": true, "image": "images/work1.svg" },
+    { "id": "appetizers", "name": "🍢 Закуски", "description": "Закуски для фуршета, праздника и встречи гостей.", "active": true, "image": "images/work2.svg" },
+    { "id": "hot", "name": "🥩 Горячие блюда", "description": "Горячие блюда, приготовленные с вниманием к подаче.", "active": true, "image": "images/work3.svg" }
+  ],
+  "services": [
+    { "name": "Салат Цезарь с креветками", "price": 3200, "duration_minutes": 20, "category": "salads", "description": "Салат с креветками, свежими листьями и фирменной заправкой." },
+    { "name": "Салат Греческий", "price": 2500, "duration_minutes": 15, "category": "salads", "description": "Овощи, сыр и оливки в средиземноморском стиле." },
+    { "name": "Ассорти брускетт", "price": 4500, "duration_minutes": 30, "category": "appetizers", "description": "Ассорти закусочных брускетт для фуршета." },
+    { "name": "Стейк из мраморной говядины", "price": 8500, "duration_minutes": 45, "category": "hot", "description": "Стейк с подачей от шефа. Степень прожарки уточняется при подтверждении." }
+  ]
+}
