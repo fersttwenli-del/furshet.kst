@@ -57,10 +57,7 @@ export type ParsedCar = {
 export function parseCarField(car: string): ParsedCar {
   const out: ParsedCar = { mode: null, guests: null, place: '', total: null, items: [] }
   const rest: string[] = []
-  for (const p of car
-    .split(' · ')
-    .map((x) => x.trim())
-    .filter(Boolean)) {
+  for (const p of car.split(' · ').map((x) => x.trim()).filter(Boolean)) {
     if (p === 'Повар на выезд') out.mode = 'chef'
     else if (p === 'Доставка') out.mode = 'delivery'
     else if (/^\d+ персон$/.test(p)) out.guests = Number(p.split(' ')[0])
@@ -167,8 +164,8 @@ export function EventFields({
                 borderRadius: 14,
                 textAlign: 'left',
                 cursor: 'pointer',
-                color: active ? '#fff' : 'inherit',
-                background: active ? 'var(--accent-purple)' : 'var(--surface, #1e1e24)',
+                color: active ? 'var(--on-accent, #141518)' : 'inherit',
+                background: active ? 'var(--accent, #ff8a1f)' : 'var(--surface, #1e1e24)',
                 border: `1px solid ${active ? 'transparent' : errors.mode ? '#e5484d' : 'var(--line)'}`,
               }}
             >
@@ -229,9 +226,7 @@ export function EventFields({
         <input
           style={inputStyle(!!errors.place)}
           autoComplete="street-address"
-          placeholder={
-            value.mode === 'delivery' ? 'Улица, дом, квартира' : 'Адрес или название места'
-          }
+          placeholder={value.mode === 'delivery' ? 'Улица, дом, квартира' : 'Адрес или название места'}
           value={value.place}
           onChange={(e) => set('place', e.target.value)}
         />

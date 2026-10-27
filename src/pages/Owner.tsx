@@ -14,6 +14,7 @@ import { Sheet } from '../components/Sheet'
 import { AssistantSheet } from '../components/AssistantSheet'
 import './owner-login.css'
 import './owner-media.css'
+import { Notify } from '../components/Notify'
 import { AI_ENABLED } from '../lib/features'
 import { Bell } from '../lib/icons'
 import {
@@ -796,8 +797,8 @@ function NewOrder({
                   aria-label="Больше"
                   style={{
                     ...iconBtn,
-                    background: n > 0 ? 'var(--accent-purple)' : iconBtn.background,
-                    color: n > 0 ? '#fff' : 'inherit',
+                    background: n > 0 ? 'var(--accent, #ff8a1f)' : iconBtn.background,
+                    color: n > 0 ? 'var(--on-accent, #141518)' : 'inherit',
                     border: n > 0 ? 'none' : iconBtn.border,
                   }}
                   onClick={() => change(s.id, 1)}
@@ -1965,31 +1966,3 @@ function Docs({ b }: { b: Business }) {
   )
 }
 
-const BOT = import.meta.env.VITE_TELEGRAM_BOT as string | undefined
-function Notify({ b }: { b: Business }) {
-  return (
-    <div className="card col" style={{ gap: 16 }}>
-      <h3>Telegram-уведомления</h3>
-      <p className="muted small">
-        Здесь можно будет настроить отправку мгновенных уведомлений о новых заказах, отмене или
-        переносе прямо в ваш Telegram-чат.
-      </p>
-
-      <div
-        className="card"
-        style={{ background: 'rgba(255, 255, 255, 0.03)', borderStyle: 'dashed' }}
-      >
-        <p style={{ margin: 0, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Bell size={18} /> Функция находится в разработке
-        </p>
-        <p className="muted small" style={{ margin: '4px 0 0 0' }}>
-          Скоро здесь появится кнопка для быстрой привязки Telegram-бота к вашему заведению.
-        </p>
-      </div>
-
-      <button className="btn" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
-        Подключить Telegram (скоро)
-      </button>
-    </div>
-  )
-}

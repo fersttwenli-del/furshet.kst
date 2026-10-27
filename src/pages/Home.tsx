@@ -7,13 +7,13 @@ import {
   Clock,
   Download,
   Phone,
-  Photo,
   Pin,
   Sparkle,
   Tag,
   Grid,
 } from '../lib/icons'
 import { Reveal } from '../components/Reveal'
+import { BagIcon, ChefIcon } from '../components/OrderIcons'
 import { ServiceList } from './ServiceList'
 import { useServices } from '../lib/useServices'
 import { AI_ENABLED } from '../lib/features'
@@ -69,16 +69,11 @@ export function Home() {
         </div>
         <div className="card tile">
           <div className="row">
-            <Photo />
-            <b className="big">{b.resources.length}</b>
+            {b.min_order > 0 ? <BagIcon size={20} /> : <ChefIcon size={20} />}
+            <b className="big">{b.min_order > 0 ? money(b.min_order, b.currency) : '2 формата'}</b>
           </div>
           <span className="muted small">
-            {
-              plural(b.resources.length, ['поваров/служб', 'повара/службы', 'поваров/служб']).split(
-                ' ',
-              )[1]
-            }{' '}
-            доступно
+            {b.min_order > 0 ? 'минимальный заказ' : 'выезд повара и доставка'}
           </span>
         </div>
         <div className="card tile">

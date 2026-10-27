@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { buildMessage, isDeadChat, type Kind } from './format.ts';
+import { buildMessage, isDeadChat, parseItems, type Kind } from './format.ts';
 const env = (k: string) => Deno.env.get(k) ?? '';
 
 async function send(token: string, chat: number, text: string, url: string) {
@@ -21,14 +21,19 @@ Deno.serve(async (req) => {
   let sent = 0, retry = 0;
   for (const j of (jobs ?? []) as { id: string; tenant_id: string; kind: Kind; booking_id: string }[]) {
     try {
-      const { data: bk } = await admin.from('bookings').select('starts_at,price_cents,customer_name,customer_phone,car,service_id').eq('id', j.booking_id).maybeSingle();
+      const { data: bk, error: bkErr } = await admin.from('bookings')
+        .select('starts_at,price_cents,customer_name,customer_phone,car,service_id,service_type,venue_address,guest_count,allergies,order_items')
+        .eq('id', j.booking_id).maybeSingle();
+      if (bkErr) throw new Error(`bookings: ${bkErr.message}`); // не терять уведомление молча: задание уйдёт на повтор
       const { data: t } = await admin.from('tenants').select('slug,timezone,config').eq('id', j.tenant_id).maybeSingle();
       const { data: links } = await admin.from('telegram_links').select('chat_id').eq('tenant_id', j.tenant_id);
       if (!bk || !t || !links?.length) { await admin.rpc('finish_notification_job', { p_id: j.id, p_ok: true, p_error: null }); sent++; continue; }
       const { data: svc } = await admin.from('services').select('name').eq('tenant_id', j.tenant_id).eq('id', bk.service_id).maybeSingle();
       const cfg = t.config as { name?: string; currency?: string };
       const text = buildMessage({ kind: j.kind, studio: cfg.name ?? t.slug, service: svc?.name ?? '', startsAt: bk.starts_at, timezone: t.timezone,
-        customer: bk.customer_name, phone: bk.customer_phone, car: bk.car, priceCents: bk.price_cents, currency: cfg.currency ?? '' });
+        customer: bk.customer_name, phone: bk.customer_phone, car: bk.car ?? '', priceCents: bk.price_cents, currency: cfg.currency ?? '',
+        mode: bk.service_type === 'chef' || bk.service_type === 'delivery' ? bk.service_type : null,
+        guests: bk.guest_count, address: bk.venue_address, allergies: bk.allergies, items: parseItems(bk.order_items) });
       let failure: string | null = null;
       for (const l of links as { chat_id: number }[]) {
         const r = await send(token, l.chat_id, text, `${env('SITE_URL')}/s/${t.slug}/owner`);

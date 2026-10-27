@@ -219,9 +219,9 @@ export function ServiceList({ limit: preview }: { limit?: number } = {}) {
     width: 32,
     height: 32,
     borderRadius: 8,
-    background: filled ? 'var(--accent-purple)' : 'var(--surface, #1e1e24)',
+    background: filled ? 'var(--accent, #ff8a1f)' : 'var(--surface, #1e1e24)',
     border: filled ? 'none' : '1px solid var(--line)',
-    color: filled ? '#fff' : 'inherit',
+    color: filled ? 'var(--on-accent, #141518)' : 'inherit',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -235,8 +235,8 @@ export function ServiceList({ limit: preview }: { limit?: number } = {}) {
     gap: 8,
     padding: '8px 16px',
     borderRadius: 10,
-    background: active ? 'var(--accent-purple)' : 'var(--surface, #1e1e24)',
-    color: active ? '#fff' : 'inherit',
+    background: active ? 'var(--accent, #ff8a1f)' : 'var(--surface, #1e1e24)',
+    color: active ? 'var(--on-accent, #141518)' : 'inherit',
     border: '1px solid var(--line)',
     cursor: 'pointer',
     flexShrink: 0,
@@ -317,8 +317,8 @@ export function ServiceList({ limit: preview }: { limit?: number } = {}) {
                       padding: '1px 7px',
                       borderRadius: 999,
                       fontSize: 12,
-                      background: active ? 'rgba(255,255,255,0.25)' : 'var(--accent-purple)',
-                      color: '#fff',
+                      background: active ? 'rgba(0,0,0,0.18)' : 'var(--accent, #ff8a1f)',
+                      color: 'var(--on-accent, #141518)',
                     }}
                   >
                     {n}
@@ -477,15 +477,15 @@ export function ServiceList({ limit: preview }: { limit?: number } = {}) {
             transform: 'translateX(-50%)',
             width: '90%',
             maxWidth: 500,
-            background: 'var(--accent-purple)',
-            color: '#fff',
+            background: 'var(--accent, #ff8a1f)',
+            color: 'var(--on-accent, #141518)',
             padding: '14px 20px',
             borderRadius: 16,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
-            zIndex: 100,
+            zIndex: 40, // ниже окна записи (Sheet), чтобы не перекрывать его
             cursor: 'pointer',
           }}
         >
@@ -627,7 +627,7 @@ export function ServiceList({ limit: preview }: { limit?: number } = {}) {
                         style={{
                           height: '100%',
                           width: `${Math.min(100, (totalPrice / min) * 100)}%`,
-                          background: 'var(--accent-purple)',
+                          background: 'var(--accent, #ff8a1f)',
                           transition: 'width .2s',
                         }}
                       />

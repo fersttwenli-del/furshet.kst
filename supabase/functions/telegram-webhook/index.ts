@@ -15,12 +15,12 @@ Deno.serve(async (req) => {
   const admin = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'));
   if (/^\/start\s+[0-9a-f]{16,64}$/i.test(text)) {
     const { data } = await admin.rpc('telegram_link_consume', { p_code: text.split(/\s+/)[1], p_chat: chat.id });
-    await reply(chat.id, data ? `Готово! Уведомления о записях «${data}» подключены. Отключить: /stop` : 'Код недействителен или истёк. Создайте новый в кабинете студии.');
+    await reply(chat.id, data ? `Готово! Уведомления о новых заказах «${data}» подключены. Отключить: /stop` : 'Код недействителен или истёк. Создайте новый в кабинете, вкладка «Уведомления».');
   } else if (text === '/stop') {
     await admin.rpc('telegram_unlink_chat', { p_chat: chat.id });
     await reply(chat.id, 'Уведомления отключены.');
   } else {
-    await reply(chat.id, 'Это бот уведомлений студии. Чтобы подключить его, откройте кабинет студии, вкладка «Уведомления», кнопка «Подключить Telegram».');
+    await reply(chat.id, 'Это бот уведомлений о заказах. Чтобы подключить его, откройте кабинет, вкладка «Уведомления», кнопка «Подключить Telegram».');
   }
   return ok();
 });
