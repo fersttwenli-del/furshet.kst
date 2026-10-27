@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { errText } from '../lib/api'
@@ -7,12 +7,12 @@ import { Bell } from '../lib/icons'
 
 const BOT = import.meta.env.VITE_TELEGRAM_BOT as string | undefined
 
-function Notify({ b }: { b: Business }): JSX.Element {
+const Notify: React.FC<{ b: Business }> = ({ b }) => {
   const qc = useQueryClient()
   const [code, setCode] = useState<string | null>(null)
   const [showCode, setShowCode] = useState(false)
   const [copied, setCopied] = useState(false)
-  const copyTimer = useRef<number>()
+  const copyTimer = useRef<NodeJS.Timeout | null>(null)
 
   // Получаем список подключённых чатов
   const links = useQuery({
@@ -22,7 +22,9 @@ function Notify({ b }: { b: Business }): JSX.Element {
       if (error) throw error
       return (data ?? []) as Array<{ id: string; created_at: string }>
     },
-    refetchInterval: code ? 3000 : false, // Обновляем список при ожидании подключения
+    enabled: true,
+    staleTime: 0,
+    refetchInterval: code ? 3000 : false,
   })
 
   // Генерируем код подключения
