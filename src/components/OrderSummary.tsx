@@ -3,7 +3,7 @@ import { money } from '../lib/format'
 import { BagIcon, ChevronIcon } from './OrderIcons'
 
 export type PendingOrder = {
-  items: { name: string; qty: number; price: number }[]
+  items: { id?: string; name: string; qty: number; price: number }[]
   totalPrice: number
   summaryText: string
 }

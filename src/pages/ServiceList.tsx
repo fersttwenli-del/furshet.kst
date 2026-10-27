@@ -5,7 +5,8 @@ import type { Ctx } from '../lib/tenant'
 import { duration, money } from '../lib/format'
 import { fetchCategories, fetchServices } from '../lib/api'
 import { Arrow } from '../lib/icons'
-import { BagIcon, CloseIcon, MinusIcon, PlusIcon, TrashIcon } from '../components/OrderIcons'
+import { BagIcon, ChevronIcon, CloseIcon, ImageIcon, MinusIcon, PlusIcon, TrashIcon } from '../components/OrderIcons'
+import { CategoryIcon, cleanCategoryName } from '../components/CategoryIcon'
 
 type Category = {
   id: string
@@ -16,29 +17,48 @@ type Category = {
 }
 
 const OTHER_ID = '__other'
+const PAGE_SIZE = 8 // сколько блюд показывать сразу, остальные по кнопке «Показать ещё»
 
 // Единые хелперы: ключ блюда и цена считаются везде одинаково
 const keyOf = (s: any): string => String(s.id ?? s.name)
 const priceOf = (s: any): number =>
   s.price_cents != null ? s.price_cents / 100 : Number(s.price ?? 0)
 
-export function ServiceList() {
+export function ServiceList({ limit: preview }: { limit?: number } = {}) {
+  const pageSize = preview ?? PAGE_SIZE
   const { b, openBooking } = useOutletContext<Ctx>()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [rootId, setRootId] = useState('')
   const [subId, setSubId] = useState('') // '' = «Все» внутри категории
-  const [quantities, setQuantities] = useState<Record<string, number>>({})
+  // Корзина переживает перезагрузку страницы: хранится на этом устройстве
+  const cartKey = `cart:${b.slug}`
+  const [quantities, setQuantities] = useState<Record<string, number>>(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem(cartKey) || '{}') as Record<string, unknown>
+      return Object.fromEntries(
+        Object.entries(raw).filter(([, v]) => Number.isInteger(v) && (v as number) > 0 && (v as number) < 100),
+      ) as Record<string, number>
+    } catch {
+      return {}
+    }
+  })
+  useEffect(() => {
+    try {
+      if (Object.keys(quantities).length) localStorage.setItem(cartKey, JSON.stringify(quantities))
+      else localStorage.removeItem(cartKey)
+    } catch {
+      /* хранилище недоступно: корзина просто не сохранится */
+    }
+  }, [quantities, cartKey])
   const [dish, setDish] = useState<any | null>(null) // попап блюда
   const [dishQty, setDishQty] = useState(1)
   const [cartOpen, setCartOpen] = useState(false) // попап корзины
+  const [limit, setLimit] = useState(pageSize)
 
   // Источник — таблицы БД (там id, category_id, фото, описания). Конфиг тенанта — запасной вариант.
   const svcQ = useQuery({ queryKey: ['services', b.slug], queryFn: () => fetchServices(b.slug) })
-  const catQ = useQuery({
-    queryKey: ['categories', b.slug],
-    queryFn: () => fetchCategories(b.slug),
-  })
+  const catQ = useQuery({ queryKey: ['categories', b.slug], queryFn: () => fetchCategories(b.slug) })
   const services: any[] = svcQ.data?.length ? svcQ.data : b.services || []
   const categoriesSrc: any[] | undefined = catQ.data?.length ? catQ.data : b.categories
 
@@ -73,6 +93,8 @@ export function ServiceList() {
   const activeRootId = rootId || roots[0]?.id || ''
   const subcategories = childrenOf[activeRootId] || []
   const activeSubId = subcategories.some((c) => c.id === subId) ? subId : ''
+  // при смене категории, подкатегории или поиска список снова начинается с первых блюд
+  useEffect(() => setLimit(pageSize), [activeRootId, activeSubId, searchQuery, pageSize])
 
   // id категории + всех её потомков
   const collectIds = (id: string): Set<string> => {
@@ -96,9 +118,7 @@ export function ServiceList() {
       return services.filter(
         (s) =>
           String(s.name).toLowerCase().includes(q) ||
-          String(s.description ?? '')
-            .toLowerCase()
-            .includes(q),
+          String(s.description ?? '').toLowerCase().includes(q),
       )
     }
     const scope = collectIds(activeSubId || activeRootId)
@@ -123,6 +143,7 @@ export function ServiceList() {
         .filter((s) => (quantities[keyOf(s)] || 0) > 0)
         .map((s) => ({
           key: keyOf(s),
+          id: s.id as string | undefined,
           name: s.name as string,
           qty: quantities[keyOf(s)] as number,
           unit: priceOf(s),
@@ -180,7 +201,7 @@ export function ServiceList() {
     sessionStorage.setItem(
       'pending_order_details',
       JSON.stringify({
-        items: cartItems.map(({ name, qty, price }) => ({ name, qty, price })),
+        items: cartItems.map(({ id, name, qty, price }) => ({ id, name, qty, price })),
         totalPrice,
         summaryText: cartItems.map((i) => `${i.name} (${i.qty} шт.)`).join(', '),
       }),
@@ -205,6 +226,9 @@ export function ServiceList() {
   })
 
   const chip = (active: boolean): React.CSSProperties => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
     padding: '8px 16px',
     borderRadius: 10,
     background: active ? 'var(--accent-purple)' : 'var(--surface, #1e1e24)',
@@ -236,6 +260,7 @@ export function ServiceList() {
     paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
   }
 
+  const anyPhoto = filteredServices.some((s) => s.image_url || s.image)
   const emptyText = searchQuery
     ? 'Ничего не найдено. Попробуйте другое название.'
     : 'В этой категории пока нет блюд.'
@@ -279,7 +304,8 @@ export function ServiceList() {
                 }}
                 style={chip(active)}
               >
-                {cat.name}
+                <CategoryIcon name={cat.name} size={16} />
+                {cleanCategoryName(cat.name)}
                 {n > 0 && (
                   <span
                     style={{
@@ -303,10 +329,7 @@ export function ServiceList() {
       {/* 3. Подкатегории выбранной категории */}
       {!searchQuery && subcategories.length > 0 && (
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-          <button
-            onClick={() => setSubId('')}
-            style={{ ...chip(activeSubId === ''), padding: '6px 12px', fontSize: 14 }}
-          >
+          <button onClick={() => setSubId('')} style={{ ...chip(activeSubId === ''), padding: '6px 12px', fontSize: 14 }}>
             Все
           </button>
           {subcategories.map((sub) => (
@@ -315,7 +338,7 @@ export function ServiceList() {
               onClick={() => setSubId(sub.id)}
               style={{ ...chip(activeSubId === sub.id), padding: '6px 12px', fontSize: 14 }}
             >
-              {sub.name}
+              {cleanCategoryName(sub.name)}
             </button>
           ))}
         </div>
@@ -328,7 +351,8 @@ export function ServiceList() {
             {emptyText}
           </p>
         ) : (
-          filteredServices.map((s) => {
+          <>
+          {filteredServices.slice(0, limit).map((s) => {
             const key = keyOf(s)
             const qty = quantities[key] || 0
             return (
@@ -345,20 +369,32 @@ export function ServiceList() {
                   cursor: 'pointer',
                 }}
               >
-                {(s.image_url || s.image) && (
-                  <img
-                    src={s.image_url || s.image}
-                    alt=""
-                    loading="lazy"
-                    style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: 12,
-                      objectFit: 'cover',
-                      flexShrink: 0,
-                    }}
-                  />
-                )}
+                {anyPhoto &&
+                  (s.image_url || s.image ? (
+                    <img
+                      src={s.image_url || s.image}
+                      alt=""
+                      loading="lazy"
+                      style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }}
+                    />
+                  ) : (
+                    <span
+                      style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 12,
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'var(--surface, #1e1e24)',
+                        border: '1px solid var(--line)',
+                        opacity: 0.6,
+                      }}
+                    >
+                      <ImageIcon size={20} />
+                    </span>
+                  ))}
                 <span style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
                   <b>{s.name}</b>
                   {(s.duration_minutes || s.description) && (
@@ -380,29 +416,40 @@ export function ServiceList() {
                 >
                   {qty > 0 && (
                     <>
-                      <button
-                        aria-label="Убрать одну порцию"
-                        onClick={() => changeQty(key, -1)}
-                        style={stepBtn(false)}
-                      >
-                        <MinusIcon size={16} />
-                      </button>
-                      <span style={{ minWidth: 18, textAlign: 'center', fontWeight: 'bold' }}>
-                        {qty}
-                      </span>
+                      <button aria-label="Убрать одну порцию" onClick={() => changeQty(key, -1)} style={stepBtn(false)}><MinusIcon size={16} /></button>
+                      <span style={{ minWidth: 18, textAlign: 'center', fontWeight: 'bold' }}>{qty}</span>
                     </>
                   )}
-                  <button
-                    aria-label="Добавить порцию"
-                    onClick={() => changeQty(key, 1)}
-                    style={stepBtn(qty > 0)}
-                  >
-                    <PlusIcon size={16} />
-                  </button>
+                  <button aria-label="Добавить порцию" onClick={() => changeQty(key, 1)} style={stepBtn(qty > 0)}><PlusIcon size={16} /></button>
                 </div>
               </div>
             )
-          })
+          })}
+          {!preview && filteredServices.length > limit && (
+            <button
+              onClick={() => setLimit((n) => n + pageSize)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: '14px 16px',
+                background: 'none',
+                border: 'none',
+                color: 'inherit',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+            >
+              Показать ещё {Math.min(pageSize, filteredServices.length - limit)}
+              <span className="muted small" style={{ fontWeight: 400 }}>
+                · осталось {filteredServices.length - limit}
+              </span>
+              <ChevronIcon size={16} />
+            </button>
+          )}
+          </>
         )}
       </div>
 
@@ -437,9 +484,7 @@ export function ServiceList() {
             <div style={{ fontSize: 13, opacity: 0.9 }}>
               Позиций в заказе: <b>{totalItemsCount}</b>
             </div>
-            <div style={{ fontWeight: 'bold', fontSize: 16 }}>
-              Итого: {money(totalPrice, b.currency)}
-            </div>
+            <div style={{ fontWeight: 'bold', fontSize: 16 }}>Итого: {money(totalPrice, b.currency)}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 'bold' }}>
             <span>Открыть заказ</span>
@@ -469,21 +514,11 @@ export function ServiceList() {
               <img
                 src={dish.image || dish.image_url}
                 alt={dish.name}
-                style={{
-                  width: '100%',
-                  height: 200,
-                  objectFit: 'cover',
-                  borderRadius: 14,
-                  marginBottom: 14,
-                }}
+                style={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 14, marginBottom: 14 }}
               />
             )}
             <h3 style={{ margin: 0 }}>{dish.name}</h3>
-            {dish.description && (
-              <p className="muted" style={{ marginTop: 8 }}>
-                {dish.description}
-              </p>
-            )}
+            {dish.description && <p className="muted" style={{ marginTop: 8 }}>{dish.description}</p>}
             {dish.duration_minutes ? (
               <p className="muted small">{duration(dish.duration_minutes)}</p>
             ) : null}
@@ -494,30 +529,18 @@ export function ServiceList() {
               </b>
             </p>
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 20,
-                margin: '16px 0',
-              }}
-            >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, margin: '16px 0' }}>
               <button
                 aria-label="Меньше"
                 onClick={() => setDishQty((n) => Math.max(0, n - 1))}
                 style={{ ...stepBtn(false), width: 44, height: 44, fontSize: 20 }}
-              >
-                <MinusIcon size={16} />
-              </button>
+              ><MinusIcon size={16} /></button>
               <b style={{ fontSize: 22, minWidth: 28, textAlign: 'center' }}>{dishQty}</b>
               <button
                 aria-label="Больше"
                 onClick={() => setDishQty((n) => n + 1)}
                 style={{ ...stepBtn(true), width: 44, height: 44, fontSize: 20 }}
-              >
-                <PlusIcon size={16} />
-              </button>
+              ><PlusIcon size={16} /></button>
             </div>
 
             <button className="btn" style={{ width: '100%' }} onClick={confirmDish}>
@@ -525,11 +548,7 @@ export function ServiceList() {
                 ? 'Убрать из заказа'
                 : `${quantities[keyOf(dish)] ? 'Обновить' : 'Добавить'} · ${money(priceOf(dish) * dishQty, b.currency)}`}
             </button>
-            <button
-              className="btn ghost"
-              style={{ width: '100%', marginTop: 8 }}
-              onClick={closeAll}
-            >
+            <button className="btn ghost" style={{ width: '100%', marginTop: 8 }} onClick={closeAll}>
               Закрыть
             </button>
           </div>
@@ -539,13 +558,7 @@ export function ServiceList() {
       {/* 7. Попап корзины */}
       {cartOpen && (
         <div style={overlay} onClick={closeAll}>
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Ваш заказ"
-            style={sheet}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div role="dialog" aria-modal="true" aria-label="Ваш заказ" style={sheet} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0 }}>Ваш заказ</h3>
               {cartItems.length > 0 && (
@@ -568,45 +581,20 @@ export function ServiceList() {
                 {cartItems.map((i) => (
                   <div
                     key={i.key}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: '10px 0',
-                      borderBottom: '1px solid var(--line)',
-                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--line)' }}
                   >
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <b>{i.name}</b>
                       <br />
                       <span className="muted small">{money(i.unit, b.currency)} за шт.</span>
                     </span>
-                    <button
-                      aria-label="Меньше"
-                      onClick={() => changeQty(i.key, -1)}
-                      style={stepBtn(false)}
-                    >
-                      <MinusIcon size={16} />
-                    </button>
+                    <button aria-label="Меньше" onClick={() => changeQty(i.key, -1)} style={stepBtn(false)}><MinusIcon size={16} /></button>
                     <b style={{ minWidth: 18, textAlign: 'center' }}>{i.qty}</b>
-                    <button
-                      aria-label="Больше"
-                      onClick={() => changeQty(i.key, 1)}
-                      style={stepBtn(true)}
-                    >
-                      <PlusIcon size={16} />
-                    </button>
+                    <button aria-label="Больше" onClick={() => changeQty(i.key, 1)} style={stepBtn(true)}><PlusIcon size={16} /></button>
                     <b style={{ minWidth: 70, textAlign: 'right' }}>{money(i.price, b.currency)}</b>
                   </div>
                 ))}
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '14px 0',
-                    fontSize: 18,
-                  }}
-                >
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 0', fontSize: 18 }}>
                   <b>Итого</b>
                   <b>{money(totalPrice, b.currency)}</b>
                 </div>
@@ -615,11 +603,7 @@ export function ServiceList() {
                 </button>
               </div>
             )}
-            <button
-              className="btn ghost"
-              style={{ width: '100%', marginTop: 8 }}
-              onClick={closeAll}
-            >
+            <button className="btn ghost" style={{ width: '100%', marginTop: 8 }} onClick={closeAll}>
               {cartItems.length === 0 ? 'Вернуться в меню' : 'Продолжить выбор'}
             </button>
           </div>

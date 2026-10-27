@@ -34,8 +34,8 @@ export function Home() {
   const routeHref =
     b.route_url && /^https:\/\//.test(b.route_url)
       ? b.route_url
-      : `https://2gis.ru/search/${encodeURIComponent(b.address)}`
-  const minPrice = Math.min(...services.map((x) => x.price))
+      : `https://2gis.kz/search/${encodeURIComponent(b.address)}`
+  const minPrice = services.length ? Math.min(...services.map((x) => x.price)) : 0
 
   return (
     <div className="page">
@@ -96,7 +96,9 @@ export function Home() {
 
           {/* Карточка заказа */}
           <div className="card promo">
-            <Grid style={{ marginBottom: 10, color: 'var(--accent)' }} />
+            <span style={{ display: 'inline-flex', marginBottom: 10, color: 'var(--accent)' }}>
+              <Grid />
+            </span>
             <h3>{b.cards.booking.title}</h3>
             <p className="muted">{b.cards.booking.text}</p>
             <Link className="btn" to={`/s/${b.slug}/services`}>

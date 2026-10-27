@@ -28,10 +28,16 @@ export const Business = z.object({
   description: z.string(),
   demo: z.boolean().optional(),
   images: z.object({ logo: z.string(), hero: z.string() }),
-  gallery: z.array(z.object({ image: z.string(), caption: z.string() })).optional(),
-  cards: z.object({ booking: Card, ai: Card, install: Card }).optional(),
-  resources: z.array(z.string()).optional(),
-  hours: z.record(z.string(), z.tuple([z.string(), z.string()]).nullable()).optional(),
+  gallery: z.array(z.object({ image: z.string(), caption: z.string() })).default([]),
+  cards: z
+    .object({ booking: Card, ai: Card, install: Card })
+    .default({
+      booking: { title: 'Соберите заказ', text: 'Выберите блюда, дату и формат: повар на выезд или доставка.' },
+      ai: { title: 'Помощник по меню', text: 'Подберёт блюда под количество гостей и повод.' },
+      install: { title: 'Приложение на телефоне', text: 'Добавьте на главный экран и заказывайте в пару касаний.' },
+    }),
+  resources: z.array(z.string()).default([]),
+  hours: z.record(z.string(), z.tuple([z.string(), z.string()]).nullable()).default({}),
   categories: z
     .array(
       z.object({
