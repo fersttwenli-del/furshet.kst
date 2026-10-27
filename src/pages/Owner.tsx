@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type ReactNode } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type CSSProperties,
+  type ReactNode,
+} from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useOutletContext } from 'react-router-dom'
 import { z } from 'zod'
@@ -6,7 +13,16 @@ import { addDays, format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
 import { supabase } from '../lib/supabase'
-import { errText, fetchCategories, fetchServices, fetchSlots, owner, type MenuCategory, type OwnerBooking, type Svc } from '../lib/api'
+import {
+  errText,
+  fetchCategories,
+  fetchServices,
+  fetchSlots,
+  owner,
+  type MenuCategory,
+  type OwnerBooking,
+  type Svc,
+} from '../lib/api'
 import { duration, money, telHref } from '../lib/format'
 import { assetUrl, type Business, type Ctx } from '../lib/tenant'
 import { prepareImage, removeByUrl, uploadImage } from '../lib/media'
@@ -18,17 +34,45 @@ import Notify from '../components/Notify'
 import { AI_ENABLED } from '../lib/features'
 import { Bell } from '../lib/icons'
 import {
-  BagIcon, ChefIcon, ChevronIcon, ClockIcon, EditIcon, EyeIcon, EyeOffIcon, ImageIcon, MinusIcon,
-  PinIcon, PlusIcon, SearchIcon, TrashIcon, TruckIcon, UserIcon, UsersIcon,
+  BagIcon,
+  ChefIcon,
+  ChevronIcon,
+  ClockIcon,
+  EditIcon,
+  EyeIcon,
+  EyeOffIcon,
+  ImageIcon,
+  MinusIcon,
+  PinIcon,
+  PlusIcon,
+  SearchIcon,
+  TrashIcon,
+  TruckIcon,
+  UserIcon,
+  UsersIcon,
 } from '../components/OrderIcons'
 import {
-  EventFields, buildCarField, emptyEventForm, parseCarField, validateEvent,
-  type EventErrors, type EventForm, type ServiceMode,
+  EventFields,
+  buildCarField,
+  emptyEventForm,
+  parseCarField,
+  validateEvent,
+  type EventErrors,
+  type EventForm,
+  type ServiceMode,
 } from '../components/EventFields'
 import type { PendingOrder } from '../components/OrderSummary'
 import { CategoryIcon, cleanCategoryName } from '../components/CategoryIcon'
 
-const TABS = ['Заказы', 'Меню', 'Заведение', 'Фото', 'Уведомления', 'Документы', 'Помощник'] as const
+const TABS = [
+  'Заказы',
+  'Меню',
+  'Заведение',
+  'Фото',
+  'Уведомления',
+  'Документы',
+  'Помощник',
+] as const
 
 export function Owner() {
   const { b } = useOutletContext<Ctx>()
@@ -202,7 +246,7 @@ const flexRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8 }
 
 // ---------- Данные заказа ----------
 // Формат, персоны, место, сумма и состав лежат в поле car (см. buildCarField)
-// total берётся из price_cents: сумму заказа считает сервер (create_booking)
+
 function orderOf(x: OwnerBooking) {
   const info = parseCarField(x.car ?? '')
   return { info, total: x.price_cents / 100, structured: info.mode !== null }
@@ -268,7 +312,8 @@ function Orders({ b }: { b: Business }) {
   // Сумма считается по составу заказа, а не по цене первого блюда из базы
   const expected = live.reduce((n, x) => n + orderOf(x).total, 0)
   const visible = filter === 'all' ? rows : rows.filter((x) => x.status === filter)
-  const count = (f: Filter) => (f === 'all' ? rows.length : rows.filter((x) => x.status === f).length)
+  const count = (f: Filter) =>
+    f === 'all' ? rows.length : rows.filter((x) => x.status === f).length
 
   return (
     <>
@@ -574,9 +619,7 @@ function OrderActions({
           <a href={telHref(bk.customer_phone)}>{bk.customer_phone}</a>
         </span>
       </p>
-      {bk.resource_name && (
-        <p className="muted small">Исполнитель: {bk.resource_name}</p>
-      )}
+      {bk.resource_name && <p className="muted small">Исполнитель: {bk.resource_name}</p>}
 
       <div className="row wrap">
         {bk.status === 'booked' && (
@@ -749,7 +792,16 @@ function NewOrder({
       <Err m={a.msg} />
       <b>1. Блюда</b>
       <div style={{ position: 'relative' }}>
-        <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', opacity: 0.6, display: 'flex' }}>
+        <span
+          style={{
+            position: 'absolute',
+            left: 12,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            opacity: 0.6,
+            display: 'flex',
+          }}
+        >
           <SearchIcon size={16} />
         </span>
         <input
@@ -769,9 +821,13 @@ function NewOrder({
         }}
       >
         {svc.isPending ? (
-          <p className="muted" style={{ padding: 12 }}>Загрузка…</p>
+          <p className="muted" style={{ padding: 12 }}>
+            Загрузка…
+          </p>
         ) : shown.length === 0 ? (
-          <p className="muted" style={{ padding: 12 }}>Ничего не найдено.</p>
+          <p className="muted" style={{ padding: 12 }}>
+            Ничего не найдено.
+          </p>
         ) : (
           shown.map((s) => {
             const n = qty[s.id] || 0
@@ -823,11 +879,7 @@ function NewOrder({
       <b>3. Клиент и место</b>
       <EventFields value={form} errors={errs} onChange={setForm} />
 
-      <button
-        className="btn"
-        disabled={!first || !slot || a.busy}
-        onClick={submit}
-      >
+      <button className="btn" disabled={!first || !slot || a.busy} onClick={submit}>
         {a.busy ? 'Создаём…' : 'Создать заказ'}
       </button>
     </Sheet>
@@ -859,7 +911,12 @@ function BlockTime({
       onClose={onClose}
     >
       <Err m={a.msg} />
-      <select aria-label="Исполнитель" className="field" value={r} onChange={(e) => setR(e.target.value)}>
+      <select
+        aria-label="Исполнитель"
+        className="field"
+        value={r}
+        onChange={(e) => setR(e.target.value)}
+      >
         <option value="">Повар или бригада…</option>
         {res.data?.map((x) => (
           <option key={x.id} value={x.id}>
@@ -935,7 +992,11 @@ function useImageUpload(b: Business) {
     if (!file) return null
     setBusy(true)
     try {
-      const { data, error } = await supabase.from('tenants').select('id').eq('slug', b.slug).single()
+      const { data, error } = await supabase
+        .from('tenants')
+        .select('id')
+        .eq('slug', b.slug)
+        .single()
       if (error || !data) throw error ?? new Error('Не удалось определить заведение')
       const blob = await prepareImage(file, 1400, 'image/jpeg')
       return await uploadImage(data.id, blob, 'jpg')
@@ -990,7 +1051,12 @@ function ImageField({
           />
         </label>
         {url && (
-          <button type="button" className="btn ghost mini" style={flexRow} onClick={() => onChange('')}>
+          <button
+            type="button"
+            className="btn ghost mini"
+            style={flexRow}
+            onClick={() => onChange('')}
+          >
             <TrashIcon size={16} /> Убрать
           </button>
         )}
@@ -1020,7 +1086,11 @@ function CategorySheet({
   const order = Number(sortOrder)
   const ok = name.trim().length > 0 && Number.isInteger(order)
   return (
-    <Sheet title={cat.id ? 'Категория' : 'Новая категория'} sub={cat.id ? cat.name : undefined} onClose={onClose}>
+    <Sheet
+      title={cat.id ? 'Категория' : 'Новая категория'}
+      sub={cat.id ? cat.name : undefined}
+      onClose={onClose}
+    >
       <Err m={a.msg} />
       <label className="muted small" htmlFor="cn">
         Название
@@ -1042,7 +1112,13 @@ function CategorySheet({
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
-      <ImageField b={b} label="Фото категории" url={imageUrl} onChange={setImageUrl} onBusy={setUploading} />
+      <ImageField
+        b={b}
+        label="Фото категории"
+        url={imageUrl}
+        onChange={setImageUrl}
+        onBusy={setUploading}
+      />
       <label className="muted small" htmlFor="co">
         Место в меню (меньше — выше)
       </label>
@@ -1104,9 +1180,18 @@ function DishSheet({
   const minutes = Number(min)
   const cents = Math.round(Number(price.replace(',', '.')) * 100)
   const ok =
-    !!name.trim() && price.trim() !== '' && Number.isFinite(cents) && cents >= 0 && Number.isInteger(minutes) && minutes > 0
+    !!name.trim() &&
+    price.trim() !== '' &&
+    Number.isFinite(cents) &&
+    cents >= 0 &&
+    Number.isInteger(minutes) &&
+    minutes > 0
   return (
-    <Sheet title={dish.id ? 'Блюдо' : 'Новое блюдо'} sub={dish.id ? dish.name : undefined} onClose={onClose}>
+    <Sheet
+      title={dish.id ? 'Блюдо' : 'Новое блюдо'}
+      sub={dish.id ? dish.name : undefined}
+      onClose={onClose}
+    >
       <Err m={a.msg} />
       <label className="muted small" htmlFor="dn">
         Название
@@ -1115,7 +1200,12 @@ function DishSheet({
       <label className="muted small" htmlFor="dc">
         Категория
       </label>
-      <select id="dc" className="field" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+      <select
+        id="dc"
+        className="field"
+        value={categoryId}
+        onChange={(e) => setCategoryId(e.target.value)}
+      >
         <option value="">Без категории</option>
         {cats.map((c) => (
           <option key={c.id} value={c.id}>
@@ -1160,7 +1250,13 @@ function DishSheet({
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
-      <ImageField b={b} label="Фото блюда" url={imageUrl} onChange={setImageUrl} onBusy={setUploading} />
+      <ImageField
+        b={b}
+        label="Фото блюда"
+        url={imageUrl}
+        onChange={setImageUrl}
+        onBusy={setUploading}
+      />
       <label className="row">
         <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
         Показывать клиентам
@@ -1225,7 +1321,9 @@ function Menu({ b }: { b: Business }) {
       const all = dishes.filter((s) => !s.category_id || !known.has(s.category_id))
       return { key: '__none', cat: null as MenuCategory | null, all, items: all.filter(match) }
     })(),
-  ].filter((g) => (g.cat ? !q || g.items.length > 0 : g.all.length > 0 && (!q || g.items.length > 0)))
+  ].filter((g) =>
+    g.cat ? !q || g.items.length > 0 : g.all.length > 0 && (!q || g.items.length > 0),
+  )
 
   const toggleActive = (s: Svc) =>
     quick.run(() =>
@@ -1241,7 +1339,15 @@ function Menu({ b }: { b: Business }) {
       }),
     )
   const newDish = (categoryId: string | null) =>
-    setDish({ id: null, name: '', price_cents: 0, duration_minutes: 60, category_id: categoryId, description: '', image_url: null })
+    setDish({
+      id: null,
+      name: '',
+      price_cents: 0,
+      duration_minutes: 60,
+      category_id: categoryId,
+      description: '',
+      image_url: null,
+    })
 
   return (
     <div className="col">
@@ -1250,14 +1356,25 @@ function Menu({ b }: { b: Business }) {
           {dishes.length} блюд · {cats.length} категорий
         </p>
         <div className="row wrap">
-          <button className="btn mini" style={flexRow} onClick={() => newDish(cats.find((c) => c.active)?.id ?? null)}>
+          <button
+            className="btn mini"
+            style={flexRow}
+            onClick={() => newDish(cats.find((c) => c.active)?.id ?? null)}
+          >
             <PlusIcon size={16} /> Блюдо
           </button>
           <button
             className="btn ghost mini"
             style={flexRow}
             onClick={() =>
-              setCat({ id: null, name: '', description: '', image_url: null, active: true, sort_order: cats.length + 1 })
+              setCat({
+                id: null,
+                name: '',
+                description: '',
+                image_url: null,
+                active: true,
+                sort_order: cats.length + 1,
+              })
             }
           >
             <PlusIcon size={16} /> Категория
@@ -1266,7 +1383,16 @@ function Menu({ b }: { b: Business }) {
       </div>
 
       <div style={{ position: 'relative' }}>
-        <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', opacity: 0.6, display: 'flex' }}>
+        <span
+          style={{
+            position: 'absolute',
+            left: 12,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            opacity: 0.6,
+            display: 'flex',
+          }}
+        >
           <SearchIcon size={16} />
         </span>
         <input
@@ -1282,7 +1408,9 @@ function Menu({ b }: { b: Business }) {
       {catsQ.isPending || dishesQ.isPending ? (
         <p className="muted">Загрузка меню…</p>
       ) : catsQ.isError ? (
-        <p className="err">Не удалось загрузить категории. Примените миграцию 0010_menu_management.sql.</p>
+        <p className="err">
+          Не удалось загрузить категории. Примените миграцию 0010_menu_management.sql.
+        </p>
       ) : dishesQ.isError ? (
         <p className="err">Не удалось загрузить блюда.</p>
       ) : groups.length === 0 ? (
@@ -1299,7 +1427,11 @@ function Menu({ b }: { b: Business }) {
           const isOpen = !!q || !!open[g.key]
           const hidden = g.cat && !g.cat.active
           return (
-            <div className="card" key={g.key} style={{ padding: 0, overflow: 'hidden', opacity: hidden ? 0.7 : 1 }}>
+            <div
+              className="card"
+              key={g.key}
+              style={{ padding: 0, overflow: 'hidden', opacity: hidden ? 0.7 : 1 }}
+            >
               <div style={{ ...flexRow, padding: '12px 14px' }}>
                 <button
                   type="button"
@@ -1354,17 +1486,36 @@ function Menu({ b }: { b: Business }) {
                     return (
                       <div
                         key={s.id}
-                        style={{ ...flexRow, padding: '10px 14px', borderBottom: '1px solid var(--line)', opacity: off ? 0.55 : 1 }}
+                        style={{
+                          ...flexRow,
+                          padding: '10px 14px',
+                          borderBottom: '1px solid var(--line)',
+                          opacity: off ? 0.55 : 1,
+                        }}
                       >
                         {s.image_url ? (
                           <img
                             src={s.image_url}
                             alt=""
                             loading="lazy"
-                            style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}
+                            style={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: 10,
+                              objectFit: 'cover',
+                              flexShrink: 0,
+                            }}
                           />
                         ) : (
-                          <span style={{ ...iconBtn, width: 48, height: 48, opacity: 0.6, cursor: 'default' }}>
+                          <span
+                            style={{
+                              ...iconBtn,
+                              width: 48,
+                              height: 48,
+                              opacity: 0.6,
+                              cursor: 'default',
+                            }}
+                          >
                             <ImageIcon size={18} />
                           </span>
                         )}
@@ -1372,7 +1523,8 @@ function Menu({ b }: { b: Business }) {
                           <b>{s.name}</b>
                           <br />
                           <span className="muted small">
-                            {money(s.price_cents / 100, b.currency)} · {duration(s.duration_minutes)}
+                            {money(s.price_cents / 100, b.currency)} ·{' '}
+                            {duration(s.duration_minutes)}
                             {off ? ' · скрыто' : ''}
                           </span>
                         </span>
@@ -1385,7 +1537,11 @@ function Menu({ b }: { b: Business }) {
                         >
                           {off ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
                         </button>
-                        <button aria-label={`Изменить ${s.name}`} style={iconBtn} onClick={() => setDish(s)}>
+                        <button
+                          aria-label={`Изменить ${s.name}`}
+                          style={iconBtn}
+                          onClick={() => setDish(s)}
+                        >
                           <EditIcon size={16} />
                         </button>
                       </div>
@@ -1410,7 +1566,9 @@ function Menu({ b }: { b: Business }) {
         Скрытые категории и блюда не показываются клиентам, но остаются в базе. Удалить позицию
         можно только скрыв её.
       </p>
-      {dish && <DishSheet b={b} dish={dish} cats={cats} onClose={() => setDish(null)} onSaved={refresh} />}
+      {dish && (
+        <DishSheet b={b} dish={dish} cats={cats} onClose={() => setDish(null)} onSaved={refresh} />
+      )}
       {cat && <CategorySheet b={b} cat={cat} onClose={() => setCat(null)} onSaved={refresh} />}
     </div>
   )
@@ -1589,8 +1747,8 @@ function Settings({ b }: { b: Business }) {
         onChange={(e) => setF({ ...f, route_url: e.target.value })}
       />
       <p className="muted small">
-        Найдите заведение в 2ГИС, нажмите «Поделиться» и вставьте ссылку сюда. Без неё кнопка откроет
-        поиск 2ГИС по адресу.
+        Найдите заведение в 2ГИС, нажмите «Поделиться» и вставьте ссылку сюда. Без неё кнопка
+        откроет поиск 2ГИС по адресу.
       </p>
       <label className="muted small" htmlFor="ds">
         Описание
@@ -1965,4 +2123,3 @@ function Docs({ b }: { b: Business }) {
     </>
   )
 }
-
