@@ -12,8 +12,7 @@ const Notify: React.FC<{ b: Business }> = ({ b }) => {
   const [code, setCode] = useState<string | null>(null)
   const [showCode, setShowCode] = useState(false)
   const [copied, setCopied] = useState(false)
-  const copyTimer = useRef<NodeJS.Timeout | null>(null)
-
+const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Получаем список подключённых чатов
   const links = useQuery({
     queryKey: ['owner', 'telegram-links', b.slug],
@@ -60,13 +59,18 @@ const Notify: React.FC<{ b: Business }> = ({ b }) => {
     if (!code) return
     navigator.clipboard.writeText(code)
     setCopied(true)
-    clearTimeout(copyTimer.current)
-    copyTimer.current = window.setTimeout(() => setCopied(false), 2000)
+if (copyTimer.current !== null) {
+  clearTimeout(copyTimer.current)
+}    copyTimer.current = window.setTimeout(() => setCopied(false), 2000)
   }
 
-  useEffect(() => {
-    return () => clearTimeout(copyTimer.current)
-  }, [])
+useEffect(() => {
+  return () => {
+    if (copyTimer.current !== null) {
+      clearTimeout(copyTimer.current)
+    }
+  }
+}, [])
 
   if (!BOT) {
     return (

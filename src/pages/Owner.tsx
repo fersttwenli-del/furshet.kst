@@ -14,7 +14,7 @@ import { Sheet } from '../components/Sheet'
 import { AssistantSheet } from '../components/AssistantSheet'
 import './owner-login.css'
 import './owner-media.css'
-import { Notify } from '../components/Notify'
+import Notify from '../components/Notify'
 import { AI_ENABLED } from '../lib/features'
 import { Bell } from '../lib/icons'
 import {
