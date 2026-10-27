@@ -779,7 +779,7 @@ function NewOrder({
         name: form.name.trim(),
         phone: form.phone.trim(),
         car: buildCarField(form, order),
-        serviceType: form.mode as 'chef' | 'delivery',
+        serviceType: form.mode as 'chef_onsite' | 'delivery',
         address: form.place.trim(),
         guests: form.mode === 'chef' ? Number(form.guests) : null,
         items: picked.map((s) => ({ id: s.id, qty: qty[s.id]! })),

@@ -69,7 +69,7 @@ export async function fetchSlots(slug: string, service: string, day: string): Pr
   return (data ?? []) as Slot[]
 }
 export type OrderExtras = {
-  serviceType?: 'chef' | 'delivery'
+  serviceType?: 'chef_onsite' | 'delivery'
   address?: string
   guests?: number | null
   allergies?: string
