@@ -1425,6 +1425,60 @@ const DAYS: [string, string][] = [
   ['sun', 'Вс'],
 ]
 const Time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+function OrderRules({ b }: { b: Business }) {
+  const qc = useQueryClient()
+  const [value, setValue] = useState(b.min_order ? String(b.min_order) : '')
+  const [ok, setOk] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+  const amount = value.trim() === '' ? 0 : Number(value.replace(/\s/g, '').replace(',', '.'))
+  const valid = Number.isFinite(amount) && amount >= 0 && amount <= 10_000_000
+  const m = useMutation({
+    mutationFn: () => owner.setMinOrder(b.slug, Math.round(amount * 100)),
+    onSuccess: () => {
+      setOk(true)
+      setMsg(null)
+      void qc.invalidateQueries({ queryKey: ['business', b.slug] })
+    },
+    onError: (e) => {
+      setOk(false)
+      setMsg(errText(e))
+    },
+  })
+  return (
+    <div className="card col" style={{ marginBottom: 16 }}>
+      <b>Правила заказа</b>
+      <label className="muted small" htmlFor="mo">
+        Минимальная сумма заказа {valid && amount > 0 ? `· ${money(amount, b.currency)}` : ''}
+      </label>
+      <input
+        id="mo"
+        className="field"
+        inputMode="decimal"
+        placeholder="Без ограничения"
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value)
+          setOk(false)
+        }}
+      />
+      <p className="muted small" style={{ margin: 0 }}>
+        Клиенты не смогут оформить заказ на меньшую сумму. Пусто или 0 — без ограничения. Заказы,
+        которые вы вносите сами, не ограничиваются.
+      </p>
+      <Err m={msg} />
+      {!valid && <p className="err small">Введите сумму числом, например 10000.</p>}
+      {ok && (
+        <p className="muted small" role="status">
+          Сохранено.
+        </p>
+      )}
+      <button className="btn mini" disabled={!valid || m.isPending} onClick={() => m.mutate()}>
+        {m.isPending ? 'Сохраняем…' : 'Сохранить'}
+      </button>
+    </div>
+  )
+}
+
 function Settings({ b }: { b: Business }) {
   const qc = useQueryClient()
   const [msg, setMsg] = useState<string | null>(null)
@@ -1504,6 +1558,7 @@ function Settings({ b }: { b: Business }) {
           Сохранено.
         </p>
       )}
+      <OrderRules b={b} />
       <label className="muted small" htmlFor="ph">
         Телефон
       </label>

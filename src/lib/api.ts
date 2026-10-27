@@ -1,234 +1,80 @@
-import { supabase } from './supabase'
-export type Svc = {
-  id: string
-  name: string
-  price_cents: number
-  duration_minutes: number
-  category_id: string | null
-  description: string
-  image_url: string | null
-  active?: boolean
+import { supabase } from './supabase';
+export type Svc = { id: string; name: string; price_cents: number; duration_minutes: number; category_id: string | null; description: string; image_url: string | null; active?: boolean };
+export type MenuCategory = { parent_id?: string | null; id: string; name: string; description: string; image_url: string | null; active: boolean; sort_order: number };
+export async function fetchCategories(slug: string, includeInactive = false): Promise<MenuCategory[]> {
+  let query = supabase.from('categories').select('*,tenants!inner(slug)').eq('tenants.slug', slug).order('sort_order').order('name');
+  if (!includeInactive) query = query.eq('active', true);
+  const { data, error } = await query; if (error) throw error;
+  return (data ?? []) as unknown as MenuCategory[];
 }
-export type MenuCategory = {
-  parent_id?: string | null
-  id: string
-  name: string
-  description: string
-  image_url: string | null
-  active: boolean
-  sort_order: number
-}
-export async function fetchCategories(
-  slug: string,
-  includeInactive = false,
-): Promise<MenuCategory[]> {
-  let query = supabase
-    .from('categories')
-    .select('*,tenants!inner(slug)')
-    .eq('tenants.slug', slug)
-    .order('sort_order')
-    .order('name')
-  if (!includeInactive) query = query.eq('active', true)
-  const { data, error } = await query
-  if (error) throw error
-  return (data ?? []) as unknown as MenuCategory[]
-}
-export type Slot = { slot: string; free: boolean }
-export type MyBooking = {
-  id: string
-  tenant_slug: string
-  service_name: string
-  starts_at: string
-  ends_at: string
-  price_cents: number
-  status: string
-  customer_name: string
-  car: string
-  can_cancel: boolean
-}
+export type Slot = { slot: string; free: boolean };
+export type MyBooking = { id: string; tenant_slug: string; service_name: string; starts_at: string; ends_at: string;
+  price_cents: number; status: string; customer_name: string; car: string; can_cancel: boolean };
 export async function fetchServices(slug: string, includeInactive = false): Promise<Svc[]> {
-  let query = supabase
-    .from('services')
-    .select(
-      'id,name,price_cents,duration_minutes,category_id,description,image_url,active,tenants!inner(slug)',
-    )
-    .eq('tenants.slug', slug)
-    .order('price_cents')
-  if (!includeInactive) query = query.eq('active', true)
-  const { data, error } = await query
-  if (error) throw error
-  return (data ?? []) as unknown as Svc[]
+  let query = supabase.from('services').select('id,name,price_cents,duration_minutes,category_id,description,image_url,active,tenants!inner(slug)')
+    .eq('tenants.slug', slug).order('price_cents');
+  if (!includeInactive) query = query.eq('active', true);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as unknown as Svc[];
 }
 export async function fetchSlots(slug: string, service: string, day: string): Promise<Slot[]> {
-  const { data, error } = await supabase.rpc('get_slots', {
-    p_slug: slug,
-    p_service: service,
-    p_day: day,
-  })
-  if (error) throw error
-  return (data ?? []) as Slot[]
+  const { data, error } = await supabase.rpc('get_slots', { p_slug: slug, p_service: service, p_day: day });
+  if (error) throw error;
+  return (data ?? []) as Slot[];
 }
-export async function createBooking(a: {
-  slug: string
-  service: string
-  start: string
-  name: string
-  phone: string
-  car: string
-  key: string
-  token: string
-  consent: string
-}) {
-  const { data, error } = await supabase.rpc('create_booking', {
-    p_slug: a.slug,
-    p_service: a.service,
-    p_start: a.start,
-    p_name: a.name,
-    p_phone: a.phone,
-    p_car: a.car,
-    p_key: a.key,
-    p_token: a.token,
-    p_consent: a.consent,
-  })
-  if (error) throw error
-  return (data as { booking_id: string; starts_at: string; ends_at: string }[])[0]
+export type OrderExtras = { serviceType?: 'chef' | 'delivery'; address?: string; guests?: number | null; allergies?: string; items?: { id: string; qty: number }[] | null };
+export async function createBooking(a: { slug: string; service: string; start: string; name: string; phone: string; car: string; key: string; token: string; consent: string } & OrderExtras) {
+  const { data, error } = await supabase.rpc('create_booking', { p_slug: a.slug, p_service: a.service, p_start: a.start,
+    p_name: a.name, p_phone: a.phone, p_car: a.car, p_key: a.key, p_token: a.token, p_consent: a.consent,
+    p_service_type: a.serviceType ?? 'delivery', p_address: a.address ?? null, p_guests: a.guests ?? null, p_allergies: a.allergies ?? null, p_items: a.items ?? null });
+  if (error) throw error;
+  return (data as { booking_id: string; starts_at: string; ends_at: string }[])[0];
 }
 export async function getBooking(token: string): Promise<MyBooking | null> {
-  const { data, error } = await supabase.rpc('get_booking', { p_token: token })
-  if (error) throw error
-  return ((data ?? []) as MyBooking[])[0] ?? null
+  const { data, error } = await supabase.rpc('get_booking', { p_token: token });
+  if (error) throw error;
+  return ((data ?? []) as MyBooking[])[0] ?? null;
 }
 export async function cancelBooking(token: string) {
-  const { error } = await supabase.rpc('cancel_booking', { p_token: token })
-  if (error) throw error
+  const { error } = await supabase.rpc('cancel_booking', { p_token: token });
+  if (error) throw error;
 }
 
-const rpc = async <T>(fn: string, args: Record<string, unknown>): Promise<T> => {
-  const { data, error } = await supabase.rpc(fn, args)
-  if (error) throw error
-  return data as T
-}
-export type OwnerBooking = {
-  id: string
-  service_name: string
-  starts_at: string
-  ends_at: string
-  status: string
-  customer_name: string
-  customer_phone: string
-  car: string
-  price_cents: number
-  paid_cents: number
-  resource_name: string
-}
-export type OwnerStats = {
-  visits: number
-  done: number
-  booked: number
-  received_cents: number
-  expected_cents: number
-}
+const rpc = async <T,>(fn: string, args: Record<string, unknown>): Promise<T> => { const { data, error } = await supabase.rpc(fn, args); if (error) throw error; return data as T; };
+export type OwnerBooking = { id: string; service_name: string; starts_at: string; ends_at: string; status: string; customer_name: string;
+  customer_phone: string; car: string; price_cents: number; paid_cents: number; resource_name: string };
+export type OwnerStats = { visits: number; done: number; booked: number; received_cents: number; expected_cents: number };
 export const owner = {
   me: (slug: string) => rpc<boolean>('owner_me', { p_slug: slug }),
-  bookings: (slug: string, from: string, to: string) =>
-    rpc<OwnerBooking[]>('owner_bookings', { p_slug: slug, p_from: from, p_to: to }),
-  stats: async (slug: string, from: string, to: string) =>
-    (await rpc<OwnerStats[]>('owner_stats', { p_slug: slug, p_from: from, p_to: to }))[0]!,
-  setStatus: (id: string, status: 'arrived' | 'done') =>
-    rpc<void>('owner_set_status', { p_booking: id, p_status: status }),
+  bookings: (slug: string, from: string, to: string) => rpc<OwnerBooking[]>('owner_bookings', { p_slug: slug, p_from: from, p_to: to }),
+  stats: async (slug: string, from: string, to: string) => (await rpc<OwnerStats[]>('owner_stats', { p_slug: slug, p_from: from, p_to: to }))[0]!,
+  setStatus: (id: string, status: 'arrived' | 'done') => rpc<void>('owner_set_status', { p_booking: id, p_status: status }),
   cancel: (id: string) => rpc<void>('owner_cancel', { p_booking: id }),
   erase: (id: string) => rpc<void>('owner_erase_customer', { p_booking: id }),
-  reschedule: (id: string, start: string) =>
-    rpc<boolean>('owner_reschedule', { p_booking: id, p_start: start }),
-  create: (
-    slug: string,
-    a: { service: string; start: string; name: string; phone: string; car: string },
-  ) =>
-    rpc<string>('owner_create_booking', {
-      p_slug: slug,
-      p_service: a.service,
-      p_start: a.start,
-      p_name: a.name,
-      p_phone: a.phone,
-      p_car: a.car,
-    }),
-  block: (slug: string, resource: string, start: string, end: string) =>
-    rpc<string>('owner_block', { p_slug: slug, p_resource: resource, p_start: start, p_end: end }),
-  payment: (id: string, cents: number, kind: 'payment' | 'refund') =>
-    rpc<void>('owner_add_payment', { p_booking: id, p_amount: cents, p_kind: kind }),
-  upsertService: (
-    slug: string,
-    s: {
-      id: string | null
-      categoryId: string | null
-      name: string
-      cents: number
-      minutes: number
-      active: boolean
-      description?: string
-      imageUrl?: string | null
-    },
-  ) =>
-    rpc<string>('owner_upsert_service', {
-      p_slug: slug,
-      p_id: s.id,
-      p_category_id: s.categoryId,
-      p_name: s.name,
-      p_price_cents: s.cents,
-      p_duration: s.minutes,
-      p_active: s.active,
-      p_description: s.description ?? '',
-      p_image_url: s.imageUrl ?? null,
-    }),
-  upsertCategory: (
-    slug: string,
-    c: {
-      id: string | null
-      name: string
-      description: string
-      imageUrl: string | null
-      active: boolean
-      sortOrder: number
-    },
-  ) =>
-    rpc<string>('owner_upsert_category', {
-      p_slug: slug,
-      p_id: c.id,
-      p_name: c.name,
-      p_description: c.description,
-      p_image_url: c.imageUrl,
-      p_active: c.active,
-      p_sort_order: c.sortOrder,
-    }),
-  updateConfig: (slug: string, patch: Record<string, unknown>) =>
-    rpc<void>('owner_update_config', { p_slug: slug, p_patch: patch }),
-  updateLegal: (slug: string, legal: Record<string, unknown>) =>
-    rpc<void>('owner_update_legal', { p_slug: slug, p_legal: legal }),
+  reschedule: (id: string, start: string) => rpc<boolean>('owner_reschedule', { p_booking: id, p_start: start }),
+  create: (slug: string, a: { service: string; start: string; name: string; phone: string; car: string } & OrderExtras) =>
+    rpc<string>('owner_create_booking', { p_slug: slug, p_service: a.service, p_start: a.start, p_name: a.name, p_phone: a.phone, p_car: a.car,
+      p_service_type: a.serviceType ?? 'delivery', p_address: a.address ?? null, p_guests: a.guests ?? null, p_allergies: a.allergies ?? null, p_items: a.items ?? null }),
+  block: (slug: string, resource: string, start: string, end: string) => rpc<string>('owner_block', { p_slug: slug, p_resource: resource, p_start: start, p_end: end }),
+  payment: (id: string, cents: number, kind: 'payment' | 'refund') => rpc<void>('owner_add_payment', { p_booking: id, p_amount: cents, p_kind: kind }),
+  upsertService: (slug: string, s: { id: string | null; categoryId: string | null; name: string; cents: number; minutes: number; active: boolean; description?: string; imageUrl?: string | null }) =>
+    rpc<string>('owner_upsert_service', { p_slug: slug, p_id: s.id, p_category_id: s.categoryId, p_name: s.name, p_price_cents: s.cents, p_duration: s.minutes, p_active: s.active, p_description: s.description ?? '', p_image_url: s.imageUrl ?? null }),
+  upsertCategory: (slug: string, c: { id: string | null; name: string; description: string; imageUrl: string | null; active: boolean; sortOrder: number }) =>
+    rpc<string>('owner_upsert_category', { p_slug: slug, p_id: c.id, p_name: c.name, p_description: c.description, p_image_url: c.imageUrl, p_active: c.active, p_sort_order: c.sortOrder }),
+  updateConfig: (slug: string, patch: Record<string, unknown>) => rpc<void>('owner_update_config', { p_slug: slug, p_patch: patch }),
+  updateLegal: (slug: string, legal: Record<string, unknown>) => rpc<void>('owner_update_legal', { p_slug: slug, p_legal: legal }),
+  setMinOrder: (slug: string, cents: number) => rpc<void>('owner_set_min_order', { p_slug: slug, p_cents: cents }),
   telegramCode: (slug: string) => rpc<string>('owner_telegram_code', { p_slug: slug }),
-  telegramLinks: (slug: string) =>
-    rpc<{ id: string; created_at: string }[]>('owner_telegram_links', { p_slug: slug }),
+  telegramLinks: (slug: string) => rpc<{ id: string; created_at: string }[]>('owner_telegram_links', { p_slug: slug }),
   telegramUnlink: (id: string) => rpc<void>('owner_telegram_unlink', { p_id: id }),
   resources: async (slug: string) => {
-    const { data, error } = await supabase
-      .from('resources')
-      .select('id,name,tenants!inner(slug)')
-      .eq('tenants.slug', slug)
-    if (error) throw error
-    return (data ?? []) as unknown as { id: string; name: string }[]
+    const { data, error } = await supabase.from('resources').select('id,name,tenants!inner(slug)').eq('tenants.slug', slug); if (error) throw error;
+    return (data ?? []) as unknown as { id: string; name: string }[];
   },
-}
-const MSG: [string, string][] = [
-  ['slot_taken', 'Это время занято.'],
-  ['exclusion', 'Это время занято.'],
-  ['invalid_slot', 'На это время приём не ведётся.'],
-  ['past_start', 'Это время уже прошло.'],
-  ['refund_exceeds', 'Возврат больше полученной суммы.'],
-  ['bad_transition', 'Это действие недоступно для текущего статуса.'],
-  ['forbidden', 'Нет прав для этого действия.'],
-  ['rate_limited', 'Слишком много попыток. Повторите позже.'],
-  ['consent_required', 'Нужно согласие на обработку данных.'],
-]
-export const errText = (e: unknown) => {
-  const m = String((e as Error)?.message ?? e)
-  return MSG.find(([k]) => m.includes(k))?.[1] ?? 'Не удалось выполнить действие. Повторите.'
-}
+};
+const MSG: [string, string][] = [['slot_taken', 'Это время занято.'], ['exclusion', 'Это время занято.'], ['invalid_slot', 'На это время приём не ведётся.'],
+  ['past_start', 'Это время уже прошло.'], ['refund_exceeds', 'Возврат больше полученной суммы.'], ['bad_transition', 'Это действие недоступно для текущего статуса.'],
+  ['forbidden', 'Нет прав для этого действия.'], ['rate_limited', 'Слишком много попыток. Повторите позже.'], ['consent_required', 'Нужно согласие на обработку данных.'],
+  ['min_order', 'Сумма заказа меньше минимальной.'], ['invalid_items', 'Некоторые блюда больше недоступны. Обновите меню.'], ['invalid_service_type', 'Выберите формат: повар на выезд или доставка.'], ['invalid_guests', 'Проверьте количество персон.']];
+export const errText = (e: unknown) => { const m = String((e as Error)?.message ?? e); return MSG.find(([k]) => m.includes(k))?.[1] ?? 'Не удалось выполнить действие. Повторите.'; };

@@ -153,6 +153,10 @@ export function ServiceList({ limit: preview }: { limit?: number } = {}) {
   )
   const totalItemsCount = cartItems.reduce((n, i) => n + i.qty, 0)
   const totalPrice = cartItems.reduce((n, i) => n + i.price, 0)
+  // минимальная сумма заказа задаётся владельцем в кабинете
+  const min = b.min_order ?? 0
+  const belowMin = min > 0 && totalPrice < min
+  const lack = Math.max(0, min - totalPrice)
 
   // Сколько позиций выбрано внутри каждой корневой категории (бейдж на табе)
   const countByRoot = useMemo(() => {
@@ -197,7 +201,7 @@ export function ServiceList({ limit: preview }: { limit?: number } = {}) {
 
   // ---------- Оформление ----------
   const handleCheckout = () => {
-    if (cartItems.length === 0) return
+    if (cartItems.length === 0 || belowMin) return
     sessionStorage.setItem(
       'pending_order_details',
       JSON.stringify({
@@ -344,6 +348,12 @@ export function ServiceList({ limit: preview }: { limit?: number } = {}) {
         </div>
       )}
 
+      {min > 0 && (
+        <p className="muted small" style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '8px 0 0' }}>
+          <BagIcon size={14} /> Минимальный заказ — {money(min, b.currency)}
+        </p>
+      )}
+
       {/* 4. Список блюд */}
       <div className="card" style={{ padding: 0, overflow: 'hidden', marginTop: 12 }}>
         {filteredServices.length === 0 ? (
@@ -485,6 +495,11 @@ export function ServiceList({ limit: preview }: { limit?: number } = {}) {
               Позиций в заказе: <b>{totalItemsCount}</b>
             </div>
             <div style={{ fontWeight: 'bold', fontSize: 16 }}>Итого: {money(totalPrice, b.currency)}</div>
+            {belowMin && (
+              <div style={{ fontSize: 12, opacity: 0.9 }}>
+                Ещё {money(lack, b.currency)} до минимального заказа
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 'bold' }}>
             <span>Открыть заказ</span>
@@ -598,7 +613,28 @@ export function ServiceList({ limit: preview }: { limit?: number } = {}) {
                   <b>Итого</b>
                   <b>{money(totalPrice, b.currency)}</b>
                 </div>
-                <button className="btn" style={{ width: '100%' }} onClick={handleCheckout}>
+                {belowMin && (
+                  <div
+                    role="status"
+                    style={{ padding: 12, borderRadius: 12, border: '1px solid var(--line)', marginBottom: 12 }}
+                  >
+                    <div className="small">
+                      Минимальный заказ — <b>{money(min, b.currency)}</b>. Добавьте ещё на{' '}
+                      <b>{money(lack, b.currency)}</b>.
+                    </div>
+                    <div style={{ height: 6, borderRadius: 999, background: 'var(--line)', marginTop: 8, overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          height: '100%',
+                          width: `${Math.min(100, (totalPrice / min) * 100)}%`,
+                          background: 'var(--accent-purple)',
+                          transition: 'width .2s',
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+                <button className="btn" style={{ width: '100%' }} disabled={belowMin} onClick={handleCheckout}>
                   Оформить заказ
                 </button>
               </div>

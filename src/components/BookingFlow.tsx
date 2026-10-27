@@ -19,7 +19,8 @@ import { ChefIcon, PinIcon, TruckIcon, UsersIcon } from './OrderIcons';
 const TITLES = ['Услуга', 'Дата и время', 'Ваши данные', 'Подтверждение'];
 const ERR: Record<string, string> = { slot_taken: 'Это время только что заняли. Выберите другое.', invalid_slot: 'Это время недоступно для записи.',
   past_start: 'Это время уже прошло.', consent_required: 'Нужно согласие на обработку данных.',
-  invalid_items: 'Некоторые блюда больше недоступны. Вернитесь в меню и обновите заказ.' };
+  invalid_items: 'Некоторые блюда больше недоступны. Вернитесь в меню и обновите заказ.',
+  min_order: 'Сумма заказа меньше минимальной. Добавьте блюда в меню.' };
 const SLOT_ERRORS = ['slot_taken', 'invalid_slot', 'past_start'];
 
 export function BookingFlow({ b, initialService, onClose }: { b: Business; initialService?: string; onClose: () => void }) {
@@ -49,6 +50,8 @@ export function BookingFlow({ b, initialService, onClose }: { b: Business; initi
   }, [svcQ.data, initialService]);
   const svc = svcQ.data?.find((s) => s.id === serviceId);
   const fallback = svc ? { name: svc.name, price: svc.price_cents / 100 } : undefined;
+  const orderTotal = order ? order.totalPrice : svc ? svc.price_cents / 100 : 0;
+  const belowMin = b.min_order > 0 && !!(order || svc) && orderTotal < b.min_order;
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => {
     const d = new Date(new Date(`${today}T12:00:00Z`).getTime() + i * 864e5);
     return { iso: d.toISOString().slice(0, 10), wd: d.toLocaleDateString('ru-RU', { weekday: 'short', timeZone: 'UTC' }), n: d.getUTCDate() };
@@ -89,7 +92,7 @@ export function BookingFlow({ b, initialService, onClose }: { b: Business; initi
     }
     setStep(step + 1);
   };
-  const canNext = step === 1 ? !!serviceId : step === 2 ? !!slot : step === 3 ? agree : true;
+  const canNext = !belowMin && (step === 1 ? !!serviceId : step === 2 ? !!slot : step === 3 ? agree : true);
 
   const modeLine = (
     <span className="muted row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -115,6 +118,7 @@ export function BookingFlow({ b, initialService, onClose }: { b: Business; initi
     <Sheet title={TITLES[step - 1]!} sub={`Шаг ${step} из 4`} onClose={onClose}>
       <div className="bars">{[1, 2, 3, 4].map((i) => <i key={i} className={i <= step ? 'on' : ''} />)}</div>
       {msg && <p role="alert" className="err">{msg}</p>}
+      {belowMin && <p role="alert" className="err">Минимальная сумма заказа — {money(b.min_order, b.currency)}, сейчас {money(orderTotal, b.currency)}. <Link className="link" to={`/s/${b.slug}/services`} onClick={onClose}>Вернуться в меню</Link></p>}
       {step > 1 && step < 4 && (svc || order) && <OrderSummary order={order} currency={b.currency} fallback={fallback} />}
 
       {step === 1 && (svcQ.isPending ? <p className="muted">Загрузка услуг…</p> : svcQ.isError ? <p className="err">Не удалось загрузить услуги. <button className="link" onClick={() => svcQ.refetch()}>Повторить</button></p>

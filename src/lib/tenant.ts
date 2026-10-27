@@ -11,6 +11,8 @@ export const Business = z.object({
   route_url: z.string().optional(),
   client_profile: z.boolean().optional(),
   cancel_hours: z.number().optional(),
+  // минимальная сумма заказа в валюте заведения (0 = без ограничения); хранится в tenants.min_order_cents
+  min_order: z.number().min(0).default(0),
   legal: z
     .object({
       name: z.string(),
@@ -70,12 +72,22 @@ export type Business = z.infer<typeof Business>
 // Runtime-источник — БД (владелец правит настройки в кабинете). Статический JSON — запасной вариант, если БД недоступна.
 export async function loadBusiness(slug: string): Promise<Business> {
   try {
-    const { data, error } = await supabase
+    const first = await supabase
       .from('tenants')
-      .select('config')
+      .select('config,min_order_cents')
       .eq('slug', slug)
       .maybeSingle()
-    if (!error && data) return Business.parse(data.config)
+    // до миграции 0012 столбца min_order_cents нет: тогда читаем только конфиг
+    const res = first.error
+      ? await supabase.from('tenants').select('config').eq('slug', slug).maybeSingle()
+      : first
+    if (!res.error && res.data) {
+      const row = res.data as unknown as { config: Record<string, unknown>; min_order_cents?: number | null }
+      return Business.parse({
+        ...row.config,
+        ...(row.min_order_cents != null ? { min_order: row.min_order_cents / 100 } : {}),
+      })
+    }
   } catch (err) {
     console.error('Zod parse error:', err) // Поможет увидеть ошибку в консоли F12
   }
