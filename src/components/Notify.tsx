@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { errText, owner, type Business } from '../lib/api'
+import { errText } from '../lib/api'
+import { type Business } from '../lib/tenant'
 import { Bell } from '../lib/icons'
 
 const BOT = import.meta.env.VITE_TELEGRAM_BOT as string | undefined
 
-export function Notify({ b }: { b: Business }) {  const qc = useQueryClient()
+function Notify({ b }: { b: Business }): JSX.Element {
+  const qc = useQueryClient()
   const [code, setCode] = useState<string | null>(null)
   const [showCode, setShowCode] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -20,7 +22,7 @@ export function Notify({ b }: { b: Business }) {  const qc = useQueryClient()
       if (error) throw error
       return (data ?? []) as Array<{ id: string; created_at: string }>
     },
-    refetchInterval: code ? 3000 : false,
+    refetchInterval: code ? 3000 : false, // Обновляем список при ожидании подключения
   })
 
   // Генерируем код подключения
@@ -68,7 +70,7 @@ export function Notify({ b }: { b: Business }) {  const qc = useQueryClient()
     return (
       <div className="card col" style={{ gap: 16 }}>
         <h3>Telegram-уведомления</h3>
-        <p className="muted small">Функция отключена на этом сервере.</p>
+        <p className="muted small">Функция отключена на этом сервере (VITE_TELEGRAM_BOT не установлена).</p>
       </div>
     )
   }
@@ -80,6 +82,7 @@ export function Notify({ b }: { b: Business }) {  const qc = useQueryClient()
         Получайте мгновенные уведомления о новых заказах, отмене и переносе прямо в Telegram.
       </p>
 
+      {/* Статус генерирования кода */}
       {showCode && code && (
         <div className="card" style={{ background: 'rgba(76, 175, 80, 0.1)', border: '1px solid rgba(76, 175, 80, 0.3)' }}>
           <p style={{ margin: '0 0 12px 0', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -90,16 +93,18 @@ export function Notify({ b }: { b: Business }) {  const qc = useQueryClient()
             Откройте Telegram и напишите боту команду:
           </p>
           <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
-            <code style={{
-              flex: 1,
-              padding: '8px 12px',
-              background: 'var(--surface, #1e1e24)',
-              borderRadius: 6,
-              fontSize: '13px',
-              fontFamily: 'monospace',
-              wordBreak: 'break-all',
-              border: '1px solid var(--line)',
-            }}>
+            <code
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                background: 'var(--surface, #1e1e24)',
+                borderRadius: 6,
+                fontSize: '13px',
+                fontFamily: 'monospace',
+                wordBreak: 'break-all',
+                border: '1px solid var(--line)',
+              }}
+            >
               /start {code}
             </code>
             <button
@@ -112,7 +117,8 @@ export function Notify({ b }: { b: Business }) {  const qc = useQueryClient()
             </button>
           </div>
           <button
-            className="link" style={{ marginTop: 12, fontSize: '14px' }}
+            className="link"
+            style={{ marginTop: 12, fontSize: '14px' }}
             onClick={() => {
               if (BOT) window.open(`https://t.me/${BOT}`, '_blank')
             }}
@@ -125,6 +131,7 @@ export function Notify({ b }: { b: Business }) {  const qc = useQueryClient()
         </div>
       )}
 
+      {/* Список подключённых чатов */}
       {links.isSuccess && links.data && links.data.length > 0 && (
         <div className="card" style={{ background: 'rgba(33, 150, 243, 0.05)', border: '1px solid rgba(33, 150, 243, 0.2)' }}>
           <p style={{ margin: '0 0 12px 0', fontWeight: 500 }}>
@@ -132,15 +139,18 @@ export function Notify({ b }: { b: Business }) {  const qc = useQueryClient()
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {links.data.map((link) => (
-              <div key={link.id} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '8px 12px',
-                background: 'var(--surface, #1e1e24)',
-                borderRadius: 6,
-                border: '1px solid var(--line)',
-              }}>
+              <div
+                key={link.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '8px 12px',
+                  background: 'var(--surface, #1e1e24)',
+                  borderRadius: 6,
+                  border: '1px solid var(--line)',
+                }}
+              >
                 <div>
                   <p style={{ margin: 0, fontSize: '13px' }}>
                     <code style={{ color: '#90caf9' }}>
@@ -169,6 +179,7 @@ export function Notify({ b }: { b: Business }) {  const qc = useQueryClient()
         </div>
       )}
 
+      {/* Кнопка подключения */}
       {!showCode && (
         <button
           className="btn"
@@ -195,13 +206,22 @@ export function Notify({ b }: { b: Business }) {  const qc = useQueryClient()
         </button>
       )}
 
+      {/* Справка */}
       <details style={{ marginTop: 8 }}>
-        <summary style={{ cursor: 'pointer', fontWeight: 500, fontSize: '14px', color: 'var(--text, inherit)' }}>
+        <summary
+          style={{
+            cursor: 'pointer',
+            fontWeight: 500,
+            fontSize: '14px',
+            color: 'var(--text, inherit)',
+          }}
+        >
           Как это работает?
         </summary>
         <div className="muted small" style={{ marginTop: 12, lineHeight: 1.6 }}>
           <p>
-            <strong>1. Подключение:</strong> Нажмите кнопку «Подключить Telegram» и скопируйте код. Откройте бота (ссылка выше) и напишите команду в формате <code>/start КОД</code>.
+            <strong>1. Подключение:</strong> Нажмите кнопку «Подключить Telegram» и скопируйте код.
+            Откройте бота (ссылка выше) и напишите команду в формате <code>/start КОД</code>.
           </p>
           <p>
             <strong>2. Уведомления:</strong> После подключения вы будете получать сообщения о:
@@ -229,3 +249,5 @@ export function Notify({ b }: { b: Business }) {  const qc = useQueryClient()
     </div>
   )
 }
+
+export default Notify
